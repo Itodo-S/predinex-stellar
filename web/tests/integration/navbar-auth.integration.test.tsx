@@ -4,17 +4,45 @@ import { render } from '../test-utils';
 import Home from '@/page';
 import CreateMarket from '@/create/page';
 import * as StacksProvider from '@/components/StacksProvider';
-import * as WalletConnection from '@/../../lib/hooks/useWalletConnection';
+import * as WalletConnection from '@/../lib/hooks/useWalletConnection';
+import * as AppKit from '@/../lib/hooks/useAppKit';
 import * as Navigation from 'next/navigation';
 
-// Mock the hooks
-vi.mock('@/components/StacksProvider', () => ({
+// Mock the hooks with both aliased and relative paths to ensure resolution
+const stacksMock = {
   useStacks: vi.fn(),
   StacksProvider: ({ children }: { children: React.ReactNode }) => <div data-testid="stacks-provider">{children}</div>,
-}));
+};
+vi.mock('@/components/StacksProvider', () => stacksMock);
+vi.mock('../../app/components/StacksProvider', () => stacksMock);
 
-vi.mock('@/../../lib/hooks/useWalletConnection', () => ({
+const walletMock = {
   useWalletConnection: vi.fn(),
+};
+vi.mock('@/../lib/hooks/useWalletConnection', () => walletMock);
+vi.mock('../../lib/hooks/useWalletConnection', () => walletMock);
+vi.mock('../../../lib/hooks/useWalletConnection', () => walletMock);
+
+const appKitHookMock = {
+  useAppKit: vi.fn(() => ({
+    open: vi.fn(),
+    isConnected: false,
+    address: null,
+    status: 'disconnected',
+    chainId: undefined,
+    switchNetwork: vi.fn(),
+    close: vi.fn(),
+  })),
+};
+vi.mock('@/../lib/hooks/useAppKit', () => appKitHookMock);
+vi.mock('../../lib/hooks/useAppKit', () => appKitHookMock);
+vi.mock('../../../lib/hooks/useAppKit', () => appKitHookMock);
+
+// Mock the underlying library just in case
+vi.mock('@reown/appkit/react', () => ({
+  useAppKit: vi.fn(() => ({ open: vi.fn(), close: vi.fn() })),
+  useAppKitAccount: vi.fn(() => ({ address: null, isConnected: false, status: 'disconnected' })),
+  useAppKitNetwork: vi.fn(() => ({ chainId: undefined, switchNetwork: vi.fn() })),
 }));
 
 // Refine next/navigation mock for routing tests
@@ -42,6 +70,17 @@ describe('Navbar and Auth Integration', () => {
       signOut: vi.fn(),
     });
     vi.mocked(Navigation.usePathname).mockReturnValue('/');
+
+    // Mock AppKit (Set A Navbar uses AppKitButton)
+    vi.mocked(AppKit.useAppKit).mockReturnValue({
+      open: vi.fn(),
+      isConnected: false,
+      address: null,
+      status: 'disconnected',
+      chainId: undefined,
+      switchNetwork: vi.fn(),
+      close: vi.fn(),
+    });
 
     // Render Home (Set A)
     const { unmount } = render(<Home />);
@@ -77,6 +116,17 @@ describe('Navbar and Auth Integration', () => {
       signOut: vi.fn(),
     });
     vi.mocked(Navigation.usePathname).mockReturnValue('/');
+
+    // Mock AppKit
+    vi.mocked(AppKit.useAppKit).mockReturnValue({
+      open: vi.fn(),
+      isConnected: false,
+      address: null,
+      status: 'disconnected',
+      chainId: undefined,
+      switchNetwork: vi.fn(),
+      close: vi.fn(),
+    });
 
     // Render Home (Set A)
     const { unmount } = render(<Home />);

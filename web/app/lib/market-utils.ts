@@ -3,6 +3,7 @@
  * These helpers manage odds calculations, status determinations, and formatting for prediction markets.
  */
 
+import { STACKS_MAINNET, STACKS_TESTNET, type StacksNetwork } from '@stacks/network';
 import { PoolData, ProcessedMarket, MarketStatus } from './market-types';
 
 /**
@@ -119,11 +120,10 @@ export function formatTimeRemaining(blocksRemaining: number | null): string {
 
 /**
  * Retrieves the current block height of the Stacks network.
- * 
+ *
  * This is computed from cached data first (fast path), while live fetching
  * happens via `fetchCurrentBlockHeightLive()`.
  */
-import { STACKS_MAINNET, STACKS_TESTNET, type StacksNetwork } from '@stacks/network';
 
 export const BLOCK_HEIGHT_CACHE_KEY = 'predinex_block_height_v1';
 export const BLOCK_HEIGHT_CACHE_VERSION = 1;
@@ -202,6 +202,14 @@ export async function fetchCurrentBlockHeightLive(options?: {
   timeoutMs?: number;
 }): Promise<{ height: number; warning: string | null }> {
   const timeoutMs = options?.timeoutMs ?? 5000;
+
+  if (typeof window === 'undefined') {
+    return {
+      height: getCurrentBlockHeight(),
+      warning: 'Block height lookup unavailable in this environment.',
+    };
+  }
+
   const network = getStacksNetwork();
   const url = `${network.coreApiUrl}/extended/v1/status`;
 

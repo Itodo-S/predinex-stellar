@@ -10,7 +10,6 @@ import {
   PostConditionMode,
   ClarityValue,
   StacksTransactionWire,
-  TxBroadcastResult,
 } from '@stacks/transactions';
 import { StacksNetwork } from '@stacks/network';
 import { TransactionPayload } from './wallet-service';
@@ -182,10 +181,7 @@ export class TransactionService {
    */
   async broadcastTransaction(transaction: StacksTransactionWire): Promise<TransactionResult> {
     try {
-      const broadcastResult = await broadcastTransaction({
-        transaction,
-        network: this.network,
-      });
+      const broadcastResult = await broadcastTransaction({ transaction });
 
       if ('error' in broadcastResult) {
         throw new Error(`Broadcast failed: ${broadcastResult.error}`);
@@ -270,8 +266,10 @@ export class TransactionService {
     details?: TransactionStatusDetails;
   }> {
     try {
-      const baseUrl = this.network.client.baseUrl;
-      const response = await fetch(`${baseUrl}/extended/v1/tx/${txId}`);
+      // StacksNetwork exposes coreApiUrl/baseUrl at runtime but they are not part of
+      // the public TypeScript surface; cast to a minimal shape to avoid as-any sprawl.
+      const net = this.network as { coreApiUrl?: string; baseUrl?: string };
+      const response = await fetch(`${net.coreApiUrl ?? net.baseUrl}/extended/v1/tx/${txId}`);
 
       if (!response.ok) {
         if (response.status === 404) {

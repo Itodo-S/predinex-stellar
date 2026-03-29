@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useWallet } from './WalletAdapterProvider';
+import { formatDisplayAddress } from '../lib/address-display';
 import { useDisputes } from '../lib/hooks/useDisputes';
 import { getPool } from '../lib/stacks-api';
 
@@ -128,10 +129,6 @@ export default function DisputeManagement() {
     loadDisputes();
   }, []);
 
-  const formatAddress = (address: string) => {
-    return `${address.slice(0, 8)}...${address.slice(-8)}`;
-  };
-
   const formatSTX = (microSTX: number) => {
     return (microSTX / 1000000).toFixed(2);
   };
@@ -223,7 +220,7 @@ export default function DisputeManagement() {
                       </div>
                       <h4 className="font-semibold text-lg mb-1">{dispute.poolTitle}</h4>
                       <div className="text-sm text-muted-foreground">
-                        Pool #{dispute.poolId} • Disputed by {formatAddress(dispute.disputer)}
+                        Pool #{dispute.poolId} • Disputed by {formatDisplayAddress(dispute.disputer)}
                       </div>
                     </div>
                     
@@ -332,7 +329,7 @@ export default function DisputeManagement() {
                   </div>
                   <h4 className="font-semibold text-lg mb-1">{dispute.poolTitle}</h4>
                   <div className="text-sm text-muted-foreground">
-                    Pool #{dispute.poolId} • Disputed by {formatAddress(dispute.disputer)}
+                    Pool #{dispute.poolId} • Disputed by {formatDisplayAddress(dispute.disputer)}
                   </div>
                 </div>
                 

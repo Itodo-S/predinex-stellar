@@ -35,8 +35,17 @@ export class ComplianceRouteHandler {
       };
     }
 
+    const participantAddress = SecuritySanitizer.readStellarAddress(body.participantAddress);
+    if (!participantAddress) {
+      return {
+        success: false,
+        error: { code: 'INVALID_ADDRESS', message: 'participantAddress must be a valid Stellar address' },
+        timestamp: Date.now(),
+      };
+    }
+
     const request: ComplianceCheckRequest = {
-      participantAddress: String(body.participantAddress),
+      participantAddress,
       action: body.action,
       amountUsd: SecuritySanitizer.sanitizePositiveNumber(body.amountUsd, 0),
     };
@@ -58,9 +67,31 @@ export class ComplianceRouteHandler {
       };
     }
 
+    const participantAddress = SecuritySanitizer.readStellarAddress(body.participantAddress);
+    if (!participantAddress) {
+      return {
+        success: false,
+        error: { code: 'INVALID_ADDRESS', message: 'participantAddress must be a valid Stellar address' },
+        timestamp: Date.now(),
+      };
+    }
+
+    let officerAddress = 'admin';
+    if (body.officerAddress !== undefined) {
+      const suppliedOfficer = SecuritySanitizer.readStellarAddress(body.officerAddress);
+      if (!suppliedOfficer) {
+        return {
+          success: false,
+          error: { code: 'INVALID_ADDRESS', message: 'officerAddress must be a valid Stellar address' },
+          timestamp: Date.now(),
+        };
+      }
+      officerAddress = suppliedOfficer;
+    }
+
     const request: RegisterParticipantRequest = {
-      officerAddress: String(body.officerAddress || 'admin'),
-      participantAddress: String(body.participantAddress),
+      officerAddress,
+      participantAddress,
       tier: body.tier,
       kycExpiryTimestamp: parseInt(body.kycExpiryTimestamp) || Math.floor(Date.now() / 1000) + 31_536_000,
       jurisdictionCode: parseInt(body.jurisdictionCode) || 840,
@@ -76,6 +107,14 @@ export class ComplianceRouteHandler {
   }
 
   public handleGetStatus(address: string): ApiResponse<ComplianceRecordDto> {
+    if (!SecuritySanitizer.isValidStellarAddress(address)) {
+      return {
+        success: false,
+        error: { code: 'INVALID_ADDRESS', message: 'address must be a valid Stellar address' },
+        timestamp: Date.now(),
+      };
+    }
+
     const record = this.engine.getRecord(address);
     if (!record) {
       return {
@@ -130,7 +169,8 @@ complianceRouter.post(
 complianceRouter.get('/status/:address', (req: Request, res: Response) => {
   const handler = new ComplianceRouteHandler();
   const result = handler.handleGetStatus(req.params.address);
-  res.status(result.success ? 200 : 404).json(result);
+  const status = result.success ? 200 : result.error?.code === 'INVALID_ADDRESS' ? 400 : 404;
+  res.status(status).json(result);
 });
 
 export default complianceRouter;

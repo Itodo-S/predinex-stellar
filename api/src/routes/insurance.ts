@@ -76,9 +76,18 @@ export class InsuranceRouteHandler {
       };
     }
 
+    const holderAddress = SecuritySanitizer.readStellarAddress(body.holderAddress);
+    if (!holderAddress) {
+      return {
+        success: false,
+        error: { code: 'INVALID_ADDRESS', message: 'holderAddress must be a valid Stellar address' },
+        timestamp: Date.now(),
+      };
+    }
+
     const request: PolicyPurchaseRequest = {
       poolId: parseInt(body.poolId),
-      holderAddress: String(body.holderAddress),
+      holderAddress,
       coverAmount: SecuritySanitizer.sanitizeBigIntString(String(body.coverAmount)),
       durationSeconds: Math.max(86400, Math.min(31536000, parseInt(body.durationSeconds) || 86400)),
       riskTier: body.riskTier || 'Safe',
@@ -109,9 +118,18 @@ export class InsuranceRouteHandler {
       };
     }
 
+    const claimantAddress = SecuritySanitizer.readStellarAddress(body.claimantAddress);
+    if (!claimantAddress) {
+      return {
+        success: false,
+        error: { code: 'INVALID_ADDRESS', message: 'claimantAddress must be a valid Stellar address' },
+        timestamp: Date.now(),
+      };
+    }
+
     const request: ClaimSubmissionRequest = {
       policyId: parseInt(body.policyId),
-      claimantAddress: String(body.claimantAddress),
+      claimantAddress,
       lossAmount: SecuritySanitizer.sanitizeBigIntString(String(body.lossAmount)),
       proofData: String(body.proofData || ''),
     };

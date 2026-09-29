@@ -11,6 +11,7 @@ import {
   UserReputationDto,
 } from '../types/index.js';
 import { ReputationEngine } from '../services/reputation-engine.js';
+import { SecuritySanitizer } from '../middleware/security.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { rateLimitMiddleware } from '../middleware/rate-limit.js';
 
@@ -26,6 +27,14 @@ export class ReputationRouteHandler {
       return {
         success: false,
         error: { code: 'MISSING_ADDRESS', message: 'User address is required' },
+        timestamp: Date.now(),
+      };
+    }
+
+    if (!SecuritySanitizer.isValidStellarAddress(address)) {
+      return {
+        success: false,
+        error: { code: 'INVALID_ADDRESS', message: 'address must be a valid Stellar address' },
         timestamp: Date.now(),
       };
     }
@@ -59,8 +68,17 @@ export class ReputationRouteHandler {
       };
     }
 
+    const userAddress = SecuritySanitizer.readStellarAddress(body.userAddress);
+    if (!userAddress) {
+      return {
+        success: false,
+        error: { code: 'INVALID_ADDRESS', message: 'userAddress must be a valid Stellar address' },
+        timestamp: Date.now(),
+      };
+    }
+
     const request: ReputationSimulateRequest = {
-      userAddress: String(body.userAddress),
+      userAddress,
       action: body.action,
       amount: ReputationRouteHandler.readAmount(body.amount),
     };

@@ -248,12 +248,36 @@ export class SorobanTransactionService {
 
   /**
    * Creates a pool from an on-chain template with optional field overrides.
+   *
+   * Mirrors the contract signature
+   * `create_pool_from_template(creator, template_id, amount, overrides)`.
+   *
+   * @param wallet - Connected Freighter wallet client
+   * @param contractId - Soroban contract ID to invoke
+   * @param params.templateId - ID of the template to instantiate
+   * @param params.amountStroops - Creator deposit in stroops; the contract
+   *   rejects anything below its minimum creator deposit
+   * @param params.overrides - Per-field overrides; omitted fields keep the
+   *   template's values
+   * @param onStageChange - Optional callback for transaction stage updates
+   * @param onFeeEstimated - Optional callback to approve/reject the estimated fee
+   * @returns The submitted transaction result
+   *
+   * @example
+   * ```ts
+   * await sorobanTxService.createPoolFromTemplate(wallet, contractId, {
+   *   templateId: 3,
+   *   amountStroops: 10_000_000,
+   *   overrides: { duration: 86400 },
+   * });
+   * ```
    */
   async createPoolFromTemplate(
     wallet: FreighterWalletClient,
     contractId: string,
     params: {
       templateId: number;
+      amountStroops: number;
       overrides: {
         title?: string;
         description?: string;
@@ -286,7 +310,18 @@ export class SorobanTransactionService {
           "create_pool_from_template",
           new Address(wallet.address).toScVal(),
           nativeToScVal(params.templateId, { type: "u32" }),
-          nativeToScVal(overrides),
+          nativeToScVal(params.amountStroops, { type: "i128" }),
+          // `PoolTemplateOverrides` is a `#[contracttype]` struct, which the
+          // host only accepts as a map keyed by symbols.
+          nativeToScVal(overrides, {
+            type: {
+              title: ["symbol", null],
+              description: ["symbol", null],
+              outcomes: ["symbol", null],
+              duration: ["symbol", "u64"],
+              metadata_uri: ["symbol", null],
+            },
+          }),
         ),
       )
       .setTimeout(30)

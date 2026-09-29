@@ -9,7 +9,6 @@ import { scValToNative } from '@stellar/stellar-sdk';
 import { getRuntimeConfig } from '../runtime-config';
 import { ChainIdValue, SorobanTransactionService, TxStage } from '../soroban-transaction-service';
 import { FreighterWalletClient } from '../freighter-adapter';
-import { scValToNative } from '@stellar/stellar-sdk';
 import { invalidateOnPlaceBet, invalidateOnClaimWinnings } from '../cache-invalidation';
 
 let sorobanService: SorobanTransactionService | null = null;
@@ -123,10 +122,12 @@ export const predinexContract = {
 
   /**
    * Submit a `create_pool_from_template` Soroban contract call (wallet prompt).
+   * `amountStroops` is the creator deposit the contract collects.
    */
   async createPoolFromTemplateSoroban(params: {
     wallet: FreighterWalletClient;
     templateId: number;
+    amountStroops: number;
     overrides: {
       title?: string;
       description?: string;
@@ -145,6 +146,7 @@ export const predinexContract = {
       soroban.contractId,
       {
         templateId: params.templateId,
+        amountStroops: params.amountStroops,
         overrides: {
           title: params.overrides.title,
           description: params.overrides.description,

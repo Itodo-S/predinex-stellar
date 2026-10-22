@@ -99,3 +99,22 @@ describe('market card selections share one store', () => {
     expect(result.current.atCapacity).toBe(false);
   });
 });
+
+describe('useLocalStorage identity', () => {
+  beforeEach(() => {
+    cleanup();
+    localStorage.clear();
+  });
+
+  it('keeps the same value object when a notification carries no new content', () => {
+    const a = renderHook(() => useLocalStorage<{ n: number }>('obj', { n: 0 }));
+    act(() => a.result.current[1]({ n: 1 }));
+    const afterWrite = a.result.current[0];
+
+    // Another instance writing identical content must not churn references.
+    const b = renderHook(() => useLocalStorage<{ n: number }>('obj', { n: 0 }));
+    act(() => b.result.current[1]({ n: 1 }));
+
+    expect(a.result.current[0]).toBe(afterWrite);
+  });
+});

@@ -21,6 +21,14 @@ const log = createScopedLogger('useLocalStorage');
  */
 const LOCAL_STORAGE_CHANGE_EVENT = 'predinex:local-storage';
 
+function safeGetItem(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Hook for managing local storage.
  *
@@ -63,6 +71,13 @@ export function useLocalStorage<T>(
 
   const [storedValue, setStoredValue] = useState<T>(readValue);
 
+  // Raw string this instance last saw, so a notification for content it
+  // already holds (including its own write) doesn't hand consumers a new,
+  // equal object and re-run their effects.
+  const lastRawRef = useRef<string | null>(
+    typeof window !== 'undefined' ? safeGetItem(key) : null
+  );
+
   // Mirror of the latest value, so functional updates never compose against a
   // stale render when several updates land before React re-renders.
   const latestRef = useRef(storedValue);
@@ -74,6 +89,9 @@ export function useLocalStorage<T>(
     const sync = (changedKey: string | null) => {
       // `null` is what `localStorage.clear()` reports.
       if (changedKey !== null && changedKey !== key) return;
+      const raw = safeGetItem(key);
+      if (raw === lastRawRef.current) return;
+      lastRawRef.current = raw;
       const next = readValue();
       latestRef.current = next;
       setStoredValue(next);
@@ -117,7 +135,9 @@ export function useLocalStorage<T>(
 
         // Save to local storage
         if (typeof window !== 'undefined') {
-          window.localStorage.setItem(key, JSON.stringify(valueToStore));
+          const raw = JSON.stringify(valueToStore);
+          window.localStorage.setItem(key, raw);
+          lastRawRef.current = raw;
           notify();
         }
       } catch (error) {
@@ -134,6 +154,7 @@ export function useLocalStorage<T>(
       setStoredValue(initialValueRef.current);
       if (typeof window !== 'undefined') {
         window.localStorage.removeItem(key);
+        lastRawRef.current = null;
         notify();
       }
     } catch (error) {
